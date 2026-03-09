@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Gefahrenwarnung Bruchsal OT Heidelsheim</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+color:white;
+}
+
+#wrapper{
+width:355px;
+height:217px;
+padding:20px;
+box-sizing:border-box;
+
+background-image:url("https://i.ibb.co/Jj5VHVzY/Vorlage-Divera-Ticker-5.png");
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+
+margin-top:-5px;
+border-radius:0px;
+position:relative;
+}
+
+h1{
+font-size:18px;
+margin-bottom:18px;
+margin-top:0px;
+margin-left:23px;
+}
+
+.warning{
+background:#b30000;
+padding:15px;
+border-radius:20px;
+margin-bottom:10px;
+}
+
+.warning h2{
+font-size:15px;
+margin:0 0 5px 0;
+}
+
+.warning p{
+font-size:14px;
+margin:0;
+}
+
+.no-warning{
+background:#0f7a32;
+padding:20px;
+border-radius:20px;
+font-size:15px;
+}
+
+.disclaimer{
+position:absolute;
+bottom:3px;
+left:10px;
+right:10px;
+font-size:4px;
+opacity:0.8;
+line-height:1.2;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="wrapper">
+
+<h1>⚠️ Gefahrenwarnung Bruchsal OT Heidelsheim</h1>
+
+<div id="warnings">Lade aktuelle Gefahreninformationen...</div>
+
+<div class="disclaimer">
+Quelle: Bundesamt für Bevölkerungsschutz und Katastrophenhilfe (BBK) – warnung.bund.de. 
+Privates Informationsangebot. Keine Gewähr für Aktualität, Richtigkeit oder Vollständigkeit.
+</div>
+
+</div>
+
+<script>
+
+const regionCode = "08215"; // Landkreis Karlsruhe
+
+const proxies = [
+url => "https://corsproxy.io/?" + encodeURIComponent(url),
+url => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+url => "https://thingproxy.freeboard.io/fetch/" + url
+];
+
+async function fetchWithFallback(url){
+
+for (const proxy of proxies){
+
+try{
+
+const response = await fetch(proxy(url));
+
+if(response.ok){
+return await response.json();
+}
+
+}catch(e){}
+
+}
+
+throw new Error("Alle Proxys fehlgeschlagen");
+
+}
+
+async function loadWarnings(){
+
+const container = document.getElementById("warnings");
+
+try{
+
+const apiUrl = "https://warnung.bund.de/api31/dashboard/" + regionCode + ".json";
+
+const data = await fetchWithFallback(apiUrl);
+
+container.innerHTML="";
+
+let found=false;
+
+data.forEach(alert=>{
+
+if(alert.payload && alert.payload.data){
+
+found=true;
+
+const headline = alert.payload.data.headline || "Gefahreninformation";
+const description = alert.payload.data.description || "";
+
+const div=document.createElement("div");
+div.className="warning";
+
+div.innerHTML=`
+<h2>${headline}</h2>
+<p>${description.substring(0,140)}...</p>
+`;
+
+container.appendChild(div);
+
+}
+
+});
+
+if(!found){
+
+container.innerHTML=`
+<div class="no-warning">
+✅ Aktuell liegen keine Gefahreninformationen vor.
+</div>
+`;
+
+}
+
+}catch(err){
+
+container.innerHTML=`
+<div class="warning">
+<h2>Fehler beim Laden</h2>
+<p>Warnsystem momentan nicht erreichbar.</p>
+</div>
+`;
+
+console.error(err);
+
+}
+
+}
+
+loadWarnings();
+setInterval(loadWarnings,60000);
+
+</script>
+
+</body>
+</html>
